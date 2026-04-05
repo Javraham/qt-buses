@@ -69,6 +69,9 @@
     <span style="font-weight: 400; white-space: nowrap"
       *ngIf="passengerInfo.numOfChildren !== 0">{{passengerInfo.numOfChildren}} {{passengerInfo.numOfChildren === 1 ?
       "Child" : "Children"}}</span>
+    <span style="font-weight: 400; white-space: nowrap"
+      *ngIf="passengerInfo.numOfInfants !== 0">{{passengerInfo.numOfInfants}} {{passengerInfo.numOfInfants === 1 ?
+      "Infant" : "Infants"}}</span>
     <div class="radio-buttons" *ngIf="selectedPassengerBus.get(passengerInfo.confirmationCode);">
       <ng-container *ngFor="let bus of getSelectedBuses(); trackBy: trackByBusId">
         <label [for]="bus.busId + '-' + passengerInfo.confirmationCode" class="radio-inline">

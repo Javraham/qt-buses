@@ -58,7 +58,9 @@ export class BusAutomationComponent implements OnInit {
   allBuses !: IBus[];
   passengerToBusMap = new Map<string, string>();
   scheduleMap = new Map<string, Map<string, string>>();
-  isPickupToBusOpen = new Map<string, boolean>;
+  isPickupToBusOpen = new Map<string, boolean>();
+  pickupGroups = new Map<string, string[][]>();
+  isPickupGroupingOpen = new Map<string, boolean>();
   form = new FormGroup({
     accessKey: new FormControl('', Validators.required),
     secretKey: new FormControl('', [Validators.required, Validators.email])
@@ -127,9 +129,12 @@ export class BusAutomationComponent implements OnInit {
     this.excludedPassengersMap.set(event[1], this.excludedPassengers.filter(val => val.startTime == event[1]));
     const filteredPassengers = this.getPassengersByTime(event[1]).filter(val => this.excludedPassengers.filter(passenger => passenger.confirmationCode == val.confirmationCode).length == 0)
     const filteredBuses = this.allBuses.filter(val => event[0].includes(val.busId))
-    console.log(filteredBuses, filteredPassengers)
-    console.log(this.usedBuses)
-    this.organizePassengers(filteredBuses, filteredPassengers, Array.from(this.scheduleMap.get(event[1]) || new Map()))
+    this.organizePassengers(filteredBuses, filteredPassengers, Array.from(this.scheduleMap.get(event[1]) || new Map()), this.pickupGroups.get(event[1]) || []);
+  }
+
+  reSortBuses(time: string) {
+    const used = this.usedBuses.get(time) || [];
+    this.updateUsedBuses([used, time]);
   }
 
   constructor(private router: Router,
@@ -284,12 +289,12 @@ export class BusAutomationComponent implements OnInit {
     this.passengerToBusMap = new Map<string, string>()
   }
 
-  organizePassengers(busInfoList: IBus[], passengers: Passenger[], pickupToBusMap: [string, string][]) {
+  organizePassengers(busInfoList: IBus[], passengers: Passenger[], pickupToBusMap: [string, string][], pickupGroups: string[][] = []) {
     console.log(this.passengerToBusMap);
     const passengerToBusList = Array.from(this.passengerToBusMap).filter(item => busInfoList.map(bus => bus.busId).includes(item[1]))
     console.log(passengerToBusList)
     const organizer = new TourOrganizer(busInfoList)
-    organizer.loadData(passengers)
+    organizer.loadData(passengers, pickupGroups)
     const isAllocated = organizer.allocatePassengers(passengerToBusList, pickupToBusMap)
     if (isAllocated[0]) {
       console.log(isAllocated)
@@ -483,6 +488,8 @@ export class BusAutomationComponent implements OnInit {
 
       // Auto-generate the HTML list
       this.refreshHTMLContent();
+
+      console.log(passengers)
 
       console.log(this.passengerService.getPickupLocationsFromPassengers(passengers, this.pickupAbbrevs));
     }
@@ -772,6 +779,37 @@ export class BusAutomationComponent implements OnInit {
     console.log(this.scheduleMap)
   }
 
+  addPickupGroup(time: string) {
+    const groups = this.pickupGroups.get(time) || [];
+    groups.push([]);
+    this.pickupGroups.set(time, groups);
+  }
+
+  removePickupGroup(time: string, index: number) {
+    const groups = this.pickupGroups.get(time);
+    if (groups) {
+      groups.splice(index, 1);
+      if (groups.length === 0) {
+        this.pickupGroups.delete(time);
+      } else {
+        this.pickupGroups.set(time, groups);
+      }
+    }
+  }
+
+  togglePickupInGroup(time: string, groupIndex: number, pickup: string, event: any) {
+    const checked = event.target.checked;
+    const groups = this.pickupGroups.get(time);
+    if (groups && groups[groupIndex]) {
+      const group = groups[groupIndex];
+      if (checked && !group.includes(pickup)) {
+        group.push(pickup);
+      } else if (!checked && group.includes(pickup)) {
+        groups[groupIndex] = group.filter(p => p !== pickup);
+      }
+    }
+  }
+
   updateAllowEditBus(event: Passenger) {
     if (this.passengerToBusMap.has(event.confirmationCode)) {
       this.passengerToBusMap.delete(event.confirmationCode)
@@ -1016,6 +1054,16 @@ export class BusAutomationComponent implements OnInit {
       this.showToast(`Failed to publish: ${e.message || 'Unknown error'}`, 'error');
       this.isPublishing = false;
     }
+  }
+
+  getInfantsByTime(time: string): number {
+    return this.passengers
+      .filter(p => p.startTime === time)
+      .reduce((sum, p) => sum + (p.numOfInfants ?? 0), 0);
+  }
+
+  getBusInfants(bus: Bus): number {
+    return bus.getPassengers().reduce((sum: number, p: Passenger) => sum + (p.numOfInfants ?? 0), 0);
   }
 
   // Helper method to get pickup abbreviation

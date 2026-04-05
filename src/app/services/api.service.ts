@@ -162,6 +162,9 @@ export class ApiService {
           const numOfChildren = productBooking?.priceCategoryBookings.reduce((total: number, val: any) => {
             return val?.pricingCategory.ticketCategory === "CHILD" ? total + 1 : total;
           }, 0);
+          const numOfInfants = productBooking?.priceCategoryBookings.reduce((total: number, val: any) => {
+            return val?.pricingCategory.ticketCategory === "INFANT" ? total + 1 : total;
+          }, 0);
           const option = result.data.find((option: IBookingOptions) => productBooking.rateId == option.option)?.abbrev || "Missing Option";
 
           return {
@@ -171,10 +174,11 @@ export class ApiService {
             firstName: val.customer.firstName,
             lastName: val.customer.lastName,
             email: val.customer.email,
-            numOfPassengers,
+            numOfPassengers: numOfPassengers - numOfInfants,
             pickup: pickup == null || pickup == "" ? "NO PICKUP LOCATION ADDED" : pickup,
             hasBoat,
             numOfChildren,
+            numOfInfants,
             hasJourney,
             phoneNumber: val.customer.phoneNumber,
             option

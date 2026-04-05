@@ -61,7 +61,10 @@ export class TourOrganizerService {
     for (const time of sortedMap.keys()) {
       const busList = this.buses.get(time) as Bus[]
       if (busList.length > 0) {
-        htmlResult += `<p style="font-weight: 700; font-size: 1.2em">${parseInt(time[0]) == 0 ? time.slice(1) : time} - ${busList.reduce((total, current: Bus) => total + current.getCurrentLoad(), 0)} TOTAL PAX</p>`
+        const totalPax = busList.reduce((total, current: Bus) => total + current.getCurrentLoad(), 0);
+        const totalInfants = busList.reduce((total, current: Bus) => total + current.getPassengers().reduce((s: number, p: Passenger) => s + (p.numOfInfants ?? 0), 0), 0);
+        const infantSuffix = totalInfants > 0 ? ` + ${totalInfants} ${totalInfants === 1 ? 'infant' : 'infants'}` : '';
+        htmlResult += `<p style="font-weight: 700; font-size: 1.2em">${parseInt(time[0]) == 0 ? time.slice(1) : time} - ${totalPax} TOTAL PAX${infantSuffix}</p>`
       }
       for (const bus of busList) {
         // Get driver name if assigned
@@ -75,7 +78,9 @@ export class TourOrganizerService {
         if (driverNotes) {
           htmlResult += `<p style="font-style: italic; margin-top: 0">${driverNotes}</p><br/>`
         }
-        htmlResult += `<p style="font-weight: 700">Pickups: ${bus.getCurrentLoad()} TOTAL PAX</p>`
+        const busInfants = bus.getPassengers().reduce((s: number, p: Passenger) => s + (p.numOfInfants ?? 0), 0);
+        const busInfantSuffix = busInfants > 0 ? ` + ${busInfants} ${busInfants === 1 ? 'infant' : 'infants'}` : '';
+        htmlResult += `<p style="font-weight: 700">Pickups: ${bus.getCurrentLoad()} TOTAL PAX${busInfantSuffix}</p>`
         const pickupLocations = this.passengerService.getTotalPassengersByPickupLocations(bus.getPassengers());
 
         Array.from(pickupLocations.entries()).forEach(val => {
@@ -84,15 +89,16 @@ export class TourOrganizerService {
 
         for (const option of this.passengerService.getOptionsToPassengers(bus.passengers, sortedOptions).keys()) {
           htmlResult += "<br/>"
-          const [numOfAdults, numOfChildren] = this.passengerService.getNumOfPassengersForOption(option, bus.passengers)
-          htmlResult += `<p>${option} - <strong>${numOfAdults} ${numOfAdults !== 1 ? "Adults" : "Adult"}${numOfChildren > 0 ? ', ' + numOfChildren + ' ' + (numOfChildren !== 1 ? "Children" : "Child") : ""}</strong></p>`
+          const [numOfAdults, numOfChildren, numOfInfants] = this.passengerService.getNumOfPassengersForOption(option, bus.passengers)
+          htmlResult += `<p>${option} - <strong>${numOfAdults} ${numOfAdults !== 1 ? "Adults" : "Adult"}${numOfChildren > 0 ? ', ' + numOfChildren + ' ' + (numOfChildren !== 1 ? "Children" : "Child") : ""}${numOfInfants > 0 ? ', ' + numOfInfants + ' ' + (numOfInfants !== 1 ? "Infants" : "Infant") : ""}</strong></p>`
           this.passengerService.getOptionsToPassengers(bus.getPassengers(), sortedOptions).get(option)?.forEach((passenger: Passenger) => {
             const numOfAdults = passenger.numOfPassengers - passenger.numOfChildren;
             const extRef = passenger.externalBookingReference || passenger.confirmationCode || '';
+            const infantStr = (passenger.numOfInfants ?? 0) > 0 ? `, ${passenger.numOfInfants} ${passenger.numOfInfants === 1 ? 'Infant' : 'Infants'}` : '';
             if (passenger.numOfChildren !== 0) {
-              htmlResult += `<p>${passenger.firstName} ${passenger.lastName}${getPickupAbbrev(passenger)} - ${extRef} - ${passenger.phoneNumber ?? "No Phone Number"} - ${numOfAdults} ${numOfAdults !== 1 ? "Adults" : "Adult"}, ${passenger.numOfChildren} ${passenger.numOfChildren == 1 ? "Child" : "Children"}</p>`
+              htmlResult += `<p>${passenger.firstName} ${passenger.lastName}${getPickupAbbrev(passenger)} - ${extRef} - ${passenger.phoneNumber ?? "No Phone Number"} - ${numOfAdults} ${numOfAdults !== 1 ? "Adults" : "Adult"}, ${passenger.numOfChildren} ${passenger.numOfChildren == 1 ? "Child" : "Children"}${infantStr}</p>`
             } else {
-              htmlResult += `<p>${passenger.firstName} ${passenger.lastName}${getPickupAbbrev(passenger)} - ${extRef} - ${passenger.phoneNumber ?? "No Phone Number"} - ${numOfAdults} ${numOfAdults !== 1 ? "Adults" : "Adult"}</p>`
+              htmlResult += `<p>${passenger.firstName} ${passenger.lastName}${getPickupAbbrev(passenger)} - ${extRef} - ${passenger.phoneNumber ?? "No Phone Number"} - ${numOfAdults} ${numOfAdults !== 1 ? "Adults" : "Adult"}${infantStr}</p>`
             }
           })
         }
@@ -106,7 +112,10 @@ export class TourOrganizerService {
     }));
     for (const time of sortedTimeMap.keys()) {
       if (!this.buses.has(time)) {
-        htmlResult += `<p style="font-weight: 700; font-size: 1.2em">${parseInt(time[0]) == 0 ? time.slice(1) : time} - ${this.passengerService.getTotalPassengers(this.TimeToPassengersMap.get(time))} TOTAL PAX</p>`
+        const timePax = this.passengerService.getTotalPassengers(this.TimeToPassengersMap.get(time));
+        const timeInfants = (this.TimeToPassengersMap.get(time) ?? []).reduce((s: number, p: Passenger) => s + (p.numOfInfants ?? 0), 0);
+        const timeInfantSuffix = timeInfants > 0 ? ` + ${timeInfants} ${timeInfants === 1 ? 'infant' : 'infants'}` : '';
+        htmlResult += `<p style="font-weight: 700; font-size: 1.2em">${parseInt(time[0]) == 0 ? time.slice(1) : time} - ${timePax} TOTAL PAX${timeInfantSuffix}</p>`
         const pickupLocations = this.passengerService.getTotalPassengersByPickupLocations(this.TimeToPassengersMap.get(time) as Passenger[]);
 
         Array.from(pickupLocations.entries()).forEach(val => {
@@ -115,15 +124,16 @@ export class TourOrganizerService {
 
         for (const option of this.passengerService.getOptionsToPassengers(this.TimeToPassengersMap.get(time) as Passenger[], sortedOptions).keys()) {
           htmlResult += "<br/>"
-          const [numOfAdults, numOfChildren] = this.passengerService.getNumOfPassengersForOption(option, this.TimeToPassengersMap.get(time) as Passenger[])
-          htmlResult += `<p>${option} - <strong>${numOfAdults} ${numOfAdults !== 1 ? "Adults" : "Adult"}${numOfChildren > 0 ? ', ' + numOfChildren + ' ' + (numOfChildren !== 1 ? "Children" : "Child") : ""}</strong></p>`
+          const [numOfAdults, numOfChildren, numOfInfants] = this.passengerService.getNumOfPassengersForOption(option, this.TimeToPassengersMap.get(time) as Passenger[])
+          htmlResult += `<p>${option} - <strong>${numOfAdults} ${numOfAdults !== 1 ? "Adults" : "Adult"}${numOfChildren > 0 ? ', ' + numOfChildren + ' ' + (numOfChildren !== 1 ? "Children" : "Child") : ""}${numOfInfants > 0 ? ', ' + numOfInfants + ' ' + (numOfInfants !== 1 ? "Infants" : "Infant") : ""}</strong></p>`
           this.passengerService.getOptionsToPassengers(this.TimeToPassengersMap.get(time) as Passenger[]).get(option)?.forEach((passenger: Passenger) => {
             const numOfAdults = passenger.numOfPassengers - passenger.numOfChildren;
             const extRef = passenger.externalBookingReference || passenger.confirmationCode || '';
+            const infantStr = (passenger.numOfInfants ?? 0) > 0 ? `, ${passenger.numOfInfants} ${passenger.numOfInfants === 1 ? 'Infant' : 'Infants'}` : '';
             if (passenger.numOfChildren !== 0) {
-              htmlResult += `<p>${passenger.firstName} ${passenger.lastName}${getPickupAbbrev(passenger)} - ${extRef} - ${passenger.phoneNumber ?? "No Phone Number"} - ${numOfAdults} ${numOfAdults !== 1 ? "Adults" : "Adult"}, ${passenger.numOfChildren} ${passenger.numOfChildren == 1 ? "Child" : "Children"}</p>`
+              htmlResult += `<p>${passenger.firstName} ${passenger.lastName}${getPickupAbbrev(passenger)} - ${extRef} - ${passenger.phoneNumber ?? "No Phone Number"} - ${numOfAdults} ${numOfAdults !== 1 ? "Adults" : "Adult"}, ${passenger.numOfChildren} ${passenger.numOfChildren == 1 ? "Child" : "Children"}${infantStr}</p>`
             } else {
-              htmlResult += `<p>${passenger.firstName} ${passenger.lastName}${getPickupAbbrev(passenger)} - ${extRef} - ${passenger.phoneNumber ?? "No Phone Number"} - ${numOfAdults} ${numOfAdults !== 1 ? "Adults" : "Adult"}</p>`
+              htmlResult += `<p>${passenger.firstName} ${passenger.lastName}${getPickupAbbrev(passenger)} - ${extRef} - ${passenger.phoneNumber ?? "No Phone Number"} - ${numOfAdults} ${numOfAdults !== 1 ? "Adults" : "Adult"}${infantStr}</p>`
             }
           })
         }

@@ -172,7 +172,8 @@ export class PassengersService {
     const passengerList = this.getOptionsToPassengers(passengers).get(option) || [];
     const adults = passengerList.reduce((total: number, passenger: Passenger) => total + (passenger.numOfPassengers - passenger.numOfChildren), 0);
     const children = passengerList.reduce((total: number, passenger: Passenger) => total + passenger.numOfChildren, 0);
-    return [adults, children];
+    const infants = passengerList.reduce((total: number, passenger: Passenger) => total + (passenger.numOfInfants ?? 0), 0);
+    return [adults, children, infants];
   }
 
   getNumOfPassengersByTime(passengers: Passenger[], time: string) {

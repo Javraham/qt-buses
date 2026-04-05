@@ -18,7 +18,7 @@ export class TourOrganizer {
   }
 
 
-  loadData(data: Passenger[]): void {
+  loadData(data: Passenger[], pickupGroups: string[][] = []): void {
     for (const passengerData of data) {
       const pickup = passengerData['pickup'];
       const firstName = passengerData['firstName'];
@@ -33,6 +33,7 @@ export class TourOrganizer {
       const phoneNumber = passengerData['phoneNumber']
       const option = passengerData['option']
       const externalBookingReference = passengerData['externalBookingReference']
+      const numOfInfants = passengerData['numOfInfants'] ?? 0;
 
       const passenger: Passenger = {
         confirmationCode,
@@ -41,6 +42,7 @@ export class TourOrganizer {
         firstName,
         lastName,
         numOfChildren,
+        numOfInfants,
         hasBoat,
         numOfPassengers,
         hasJourney,
@@ -50,12 +52,22 @@ export class TourOrganizer {
         externalBookingReference
       };
 
-      if (!this.pickupLocations.has(pickup)) {
-        this.pickupLocations.set(pickup, []);
+      // Determine the bucket key for this passenger
+      let mapKey = pickup;
+      for (const group of pickupGroups) {
+        // If this pickup matches any pickup in the group, use the grouped key
+        if (group.some(g => pickup.includes(g))) {
+          mapKey = "Group: " + group.join(" + ");
+          break;
+        }
       }
-      const passengers = this.pickupLocations.get(pickup) as Passenger[];
+
+      if (!this.pickupLocations.has(mapKey)) {
+        this.pickupLocations.set(mapKey, []);
+      }
+      const passengers = this.pickupLocations.get(mapKey) as Passenger[];
       passengers.push(passenger)
-      this.pickupLocations.set(pickup, passengers);
+      this.pickupLocations.set(mapKey, passengers);
     }
   }
 

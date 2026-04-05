@@ -8,6 +8,7 @@ export interface Passenger {
   email: string,
   hasBoat: boolean,
   numOfChildren: number,
+  numOfInfants: number,
   hasJourney: boolean,
   phoneNumber: string,
   option: string,

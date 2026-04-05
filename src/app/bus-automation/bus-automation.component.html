@@ -266,7 +266,7 @@
 
   <div *ngFor="let time of cachedTimeSlots; trackBy: trackByTimeSlot">
 
-    <h5>{{time[0][0] === "0" ? time[0].slice(1) : time[0]}} - {{time[1]}} Passengers</h5>
+    <h5>{{time[0][0] === "0" ? time[0].slice(1) : time[0]}} - {{time[1]}} Passengers<ng-container *ngIf="getInfantsByTime(time[0]) > 0"> + {{getInfantsByTime(time[0])}} {{getInfantsByTime(time[0]) === 1 ? 'infant' : 'infants'}}</ng-container></h5>
     <app-bus-selection-buttons (removeBuses)="resetBusesForTime($event)" [time]="time[0]" [usedBuses]="usedBuses"
       (updatedUsedBuses)="updateUsedBuses($event)" (updateCheckList)="updateBusSelections($event)"
       [successMap]="successMap" [selectedOptions]="busSelections" [buses]="allBuses" [drivers]="drivers"
@@ -274,6 +274,40 @@
     </app-bus-selection-buttons>
     <button type="button" class="btn btn-info" style="margin-top: 15px;"
       (click)="isPickupToBusOpen.set(time[0], !isPickupToBusOpen.get(time[0]))">Map Pickup to Bus</button>
+    <button type="button" class="btn btn-secondary" style="margin-top: 15px; margin-left: 10px;"
+      (click)="isPickupGroupingOpen.set(time[0], !isPickupGroupingOpen.get(time[0]))">Group Pickups</button>
+    <ng-container *ngIf="isPickupGroupingOpen.get(time[0])">
+      <div style="display: flex; align-items: center; gap: 15px; margin-top: 10px; margin-bottom: 10px;">
+        <h5 class="mb-0">Group pickup locations together</h5>
+        <button type="button" class="btn btn-sm" style="background-color: transparent; border: 1px solid #4169E0; color: #4169E0; border-radius: 4px; padding: 4px 8px;" (click)="addPickupGroup(time[0])">
+          <i class="bi bi-plus-circle"></i> Add Group
+        </button>
+        <button *ngIf="(pickupGroups.get(time[0])?.length || 0) > 0" type="button" class="btn btn-sm btn-success" style="border-radius: 4px; padding: 4px 8px;" (click)="reSortBuses(time[0])">
+          <i class="bi bi-arrow-repeat"></i> Apply Groups & Sort
+        </button>
+      </div>
+      <h6 class="mt-1 fs-4" style="color: #64748b;">Selected pickup locations in a group will be placed together on the same bus(es).</h6>
+      
+      <div class="row m-0 g-3 pickup-groups-container" style="margin-bottom: 20px;">
+        <div *ngFor="let group of pickupGroups.get(time[0]); let i = index;" class="p-3 bg-white col-lg-6 col-md-12 col-sm-12 group-card">
+          <h5 style="margin-top: 0; padding-top: 0; padding-bottom: 0px; margin-bottom: 15px;">Group {{i + 1}}</h5>
+          <button type="button" class="btn-close group-close-btn" aria-label="Remove Group" (click)="removePickupGroup(time[0], i)">
+            <i class="bi bi-x-lg"></i>
+          </button>
+          
+          <div style="display: flex; flex-wrap: wrap; gap: 15px;">
+            <div *ngFor="let pickup of getPickupAbbrevByTime(time[0])" class="form-check form-check-inline" style="margin-right: 0;">
+              <input class="form-check-input pickup-group-checkbox" type="checkbox" [id]="'group-' + time[0] + '-' + i + '-' + pickup" 
+                [checked]="group.includes(pickup)" 
+                (change)="togglePickupInGroup(time[0], i, pickup, $event)">
+              <label class="form-check-label" [for]="'group-' + time[0] + '-' + i + '-' + pickup" style="font-weight: normal; margin-left: 5px; cursor: pointer;">
+                {{pickup}}
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </ng-container>
     <ng-container *ngIf="isPickupToBusOpen.get(time[0])">
       <h5 class="mb-0">Set pickup location to specific bus</h5>
       <h6 class="mt-1 fs-4">Must choose buses first in order to appear below</h6>
@@ -362,7 +396,7 @@
         </div>
       </div>
       <div *ngFor="let bus of getBusesByTime(time[0])">
-        <h5>Bus ({{bus.busId}}) - {{bus.getCurrentLoad()}} Passengers</h5>
+        <h5>Bus ({{bus.busId}}) - {{bus.getCurrentLoad()}} Passengers<ng-container *ngIf="getBusInfants(bus) > 0"> + {{getBusInfants(bus)}} {{getBusInfants(bus) === 1 ? 'infant' : 'infants'}}</ng-container></h5>
         <div class="row">
           <div class="col-lg-4 col-md-6 col-sm-12"
             *ngFor="let passenger of getSortedPassengers(bus.getPassengers()); trackBy: trackByConfirmationID">
