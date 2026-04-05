@@ -1002,6 +1002,7 @@ export class BusAutomationComponent implements OnInit {
             pickup: this.getPickupAbbreviation(p.pickup),  // Use abbreviation
             fullPickupName: p.pickup,
             numOfPassengers: p.numOfPassengers,
+            numOfInfants: p.numOfInfants,
             numOfChildren: p.numOfChildren,
             phoneNumber: p.phoneNumber,
             option: p.option,

@@ -139,14 +139,13 @@ export class TourOrganizer {
         );
 
         if (passengersWithLocation) {
-          const passengers = passengersWithLocation[1];
+          // Sort larger passenger groups first to optimize bin packing on specific bus
+          const passengers = [...passengersWithLocation[1]].sort((a, b) => b.numOfPassengers - a.numOfPassengers);
           for (const passenger of passengers) {
             if (!addedPassengers.has(passenger.confirmationCode)) {
-              if (!bus.addPassenger(passenger)) {
-                console.error(`Failed to add passenger ${passenger.confirmationCode} to bus ${busId}`);
-                return [false, false];
+              if (bus.addPassenger(passenger)) {
+                addedPassengers.add(passenger.confirmationCode);
               }
-              addedPassengers.add(passenger.confirmationCode);
             }
           }
         }
@@ -403,15 +402,16 @@ export class TourOrganizer {
         );
 
         if (passengersWithLocation) {
-          const passengers = passengersWithLocation[1];
+          // Sort larger passenger groups first to optimize bin packing on specific bus
+          const passengers = [...passengersWithLocation[1]].sort((a, b) => b.numOfPassengers - a.numOfPassengers);
 
           for (const passenger of passengers) {
             if (passenger) {
-              if (!bus.addPassenger(passenger)) {
-                return [false, false]
+              if (!addedPassengers.has(passenger.confirmationCode)) {
+                if (bus.addPassenger(passenger)) {
+                  addedPassengers.add(passenger.confirmationCode);
+                }
               }
-
-              addedPassengers.add(passenger.confirmationCode);
             }
           }
         }
